@@ -1,0 +1,58 @@
+[debug] [2019-12-24T17:25:01.025Z] ----------------------------------------------------------------------
+[debug] [2019-12-24T17:25:01.088Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\bbake\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js emulators:start --only functions
+[debug] [2019-12-24T17:25:01.089Z] CLI Version:   7.11.0
+[debug] [2019-12-24T17:25:01.089Z] Platform:      win32
+[debug] [2019-12-24T17:25:01.089Z] Node Version:  v12.13.0
+[debug] [2019-12-24T17:25:01.350Z] Time:          Tue Dec 24 2019 22:55:01 GMT+0530 (India Standard Time)
+[debug] [2019-12-24T17:25:01.351Z] ----------------------------------------------------------------------
+[debug] [2019-12-24T17:25:01.351Z] 
+[debug] [2019-12-24T17:25:01.632Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2019-12-24T17:25:01.634Z] > authorizing via signed-in user
+[info] i  emulators: Starting emulators: functions
+[warn] !  Your requested "node" version "8" doesn't match your global version "12"
+[info] +  functions: Emulator started at http://localhost:5001
+[info] i  functions: Watching "C:\Projects\Firebase\ProFirebase\functions" for Cloud Functions...
+[debug] [2019-12-24T17:25:05.105Z] [worker-pool] addWorker(~diagnostic~)
+[debug] [2019-12-24T17:25:05.105Z] [worker-pool] Adding worker with key ~diagnostic~, total=1
+[debug] [2019-12-24T17:25:05.106Z] [worker-pool] submitWork(triggerId=)
+[debug] [2019-12-24T17:25:05.107Z] [worker-~diagnostic~-6af2245d-afa1-419f-8f2e-d06d8319fe23]: Assigning socketPath: \\?\pipe\C:\Projects\Firebase\ProFirebase\functions\14924
+[debug] [2019-12-24T17:25:05.108Z] [worker-~diagnostic~-6af2245d-afa1-419f-8f2e-d06d8319fe23]: BUSY
+[debug] [2019-12-24T17:25:06.224Z] [runtime-status] [14924] Functions runtime initialized. {"cwd":"C:\\Projects\\Firebase\\ProFirebase\\functions","node_version":"12.13.0"}
+[debug] [2019-12-24T17:25:06.225Z] [runtime-status] [14924] Disabled runtime features: undefined
+[debug] [2019-12-24T17:25:06.308Z] [runtime-status] [14924] Resolved module firebase-admin {"declared":true,"installed":true,"version":"8.9.0","resolution":"C:\\Projects\\Firebase\\ProFirebase\\functions\\node_modules\\firebase-admin\\lib\\index.js"}
+[debug] [2019-12-24T17:25:06.366Z] [runtime-status] [14924] Resolved module firebase-functions {"declared":true,"installed":true,"version":"3.3.0","resolution":"C:\\Projects\\Firebase\\ProFirebase\\functions\\node_modules\\firebase-functions\\lib\\index.js"}
+[debug] [2019-12-24T17:25:18.638Z] [runtime-status] [14924] Found google-gax at C:\Projects\Firebase\ProFirebase\functions\node_modules\google-gax\build\src\index.js
+[debug] [2019-12-24T17:25:18.639Z] [runtime-status] [14924] Outgoing network have been stubbed. [{"name":"http","status":"mocked"},{"name":"http","status":"mocked"},{"name":"https","status":"mocked"},{"name":"https","status":"mocked"},{"name":"net","status":"mocked"},{"name":"google-gax","status":"mocked"}]
+[debug] [2019-12-24T17:25:20.326Z] [runtime-status] [14924] Checked functions.config() {"config":{}}
+[debug] [2019-12-24T17:25:20.332Z] [runtime-status] [14924] Resolved module firebase-functions {"declared":true,"installed":true,"version":"3.3.0","resolution":"C:\\Projects\\Firebase\\ProFirebase\\functions\\node_modules\\firebase-functions\\lib\\index.js"}
+[debug] [2019-12-24T17:25:20.342Z] [runtime-status] [14924] Resolved module firebase-admin {"declared":true,"installed":true,"version":"8.9.0","resolution":"C:\\Projects\\Firebase\\ProFirebase\\functions\\node_modules\\firebase-admin\\lib\\index.js"}
+[debug] [2019-12-24T17:25:20.346Z] [runtime-status] [14924] Resolved module firebase-functions {"declared":true,"installed":true,"version":"3.3.0","resolution":"C:\\Projects\\Firebase\\ProFirebase\\functions\\node_modules\\firebase-functions\\lib\\index.js"}
+[debug] [2019-12-24T17:25:23.801Z] [runtime-status] [14924] firebase-admin has been stubbed. {"adminResolution":{"declared":true,"installed":true,"version":"8.9.0","resolution":"C:\\Projects\\Firebase\\ProFirebase\\functions\\node_modules\\firebase-admin\\lib\\index.js"}}
+[warn] !  Error: Cannot find module 'C:\Projects\Firebase\ProFirebase\functions\lib\index.js'. Please verify that the package.json has a valid "main" entry
+    at tryPackage (internal/modules/cjs/loader.js:294:19)
+    at Function.Module._findPath (internal/modules/cjs/loader.js:525:18)
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:781:27)
+    at Function.Module._load (internal/modules/cjs/loader.js:687:27)
+    at Module.require (internal/modules/cjs/loader.js:849:19)
+    at require (internal/modules/cjs/helpers.js:74:18)
+    at C:\Users\bbake\AppData\Roaming\npm\node_modules\firebase-tools\lib\emulator\functionsEmulatorRuntime.js:718:33
+    at Generator.next (<anonymous>)
+    at fulfilled (C:\Users\bbake\AppData\Roaming\npm\node_modules\firebase-tools\lib\emulator\functionsEmulatorRuntime.js:4:58)
+    at processTicksAndRejections (internal/process/task_queues.js:93:5)
+[warn] !  We were unable to load your functions code. (see above)
+   - It appears your code is written in Typescript, which must be compiled before emulation.
+   - You may be able to run "npm run build" in your functions directory to resolve this.
+[debug] [2019-12-24T17:25:24.031Z] [worker-~diagnostic~-6af2245d-afa1-419f-8f2e-d06d8319fe23]: exited
+[debug] [2019-12-24T17:25:24.032Z] [worker-~diagnostic~-6af2245d-afa1-419f-8f2e-d06d8319fe23]: FINISHED
+[debug] [2019-12-24T18:14:15.650Z] File C:\Projects\Firebase\ProFirebase\functions\src\index.ts changed, reloading triggers
+[debug] [2019-12-24T18:14:15.836Z] File C:\Projects\Firebase\ProFirebase\functions\src\index.ts changed, reloading triggers
+[debug] [2019-12-24T18:14:16.853Z] [worker-pool] Cleaned up workers for ~diagnostic~: 1 --> 0
+[debug] [2019-12-24T18:14:17.089Z] [worker-pool] addWorker(~diagnostic~)
+[debug] [2019-12-24T18:14:17.090Z] [worker-pool] Adding worker with key ~diagnostic~, total=1
+[debug] [2019-12-24T18:14:17.090Z] [worker-pool] submitWork(triggerId=)
+[debug] [2019-12-24T18:14:17.090Z] [worker-~diagnostic~-ad0da569-e5e9-4a99-97ba-2e55c0fe5b57]: Assigning socketPath: \\?\pipe\C:\Projects\Firebase\ProFirebase\functions\5600
+[debug] [2019-12-24T18:14:17.090Z] [worker-~diagnostic~-ad0da569-e5e9-4a99-97ba-2e55c0fe5b57]: BUSY
+[debug] [2019-12-24T18:14:21.313Z] [runtime-status] [5600] Functions runtime initialized. {"cwd":"C:\\Projects\\Firebase\\ProFirebase\\functions","node_version":"12.13.0"}
+[debug] [2019-12-24T18:14:21.320Z] [runtime-status] [5600] Disabled runtime features: undefined
+[debug] [2019-12-24T18:14:21.363Z] [runtime-status] [5600] Resolved module firebase-admin {"declared":true,"installed":true,"version":"8.9.0","resolution":"C:\\Projects\\Firebase\\ProFirebase\\functions\\node_modules\\firebase-admin\\lib\\index.js"}
+[debug] [2019-12-24T18:14:21.440Z] [runtime-status] [5600] Resolved module firebase-functions {"declared":true,"installed":true,"version":"3.3.0","resolution":"C:\\Projects\\Firebase\\ProFirebase\\functions\\node_modules\\firebase-functions\\lib\\index.js"}
