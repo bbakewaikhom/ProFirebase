@@ -1,52 +1,51 @@
-import {Event} from './model/Event'
-
 import * as functions from 'firebase-functions';
 import admin = require('firebase-admin');
-admin.initializeApp(functions.config().firebase);
+import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore';
 
+import {Event} from './model/Event'
+
+admin.initializeApp(functions.config().firebase);
 let db = admin.firestore();
 let timestamp = admin.firestore.Timestamp
+
+export const get_event_details = functions.https.onRequest(async (request, response) => {
+    console.log(request.rawBody)
+
+    await db.collection('Event').doc(request.body.event_id).get()
+    .then (doc => {
+        if (doc.exists) {
+            console.log(JSON.stringify(getEventFromDoc(doc)))
+            return response.status(200).send(JSON.stringify(getEventFromDoc(doc)))
+        } 
+        return response.status(404).send('Information not found')
+    }).catch (error => {
+        return response.status(400).send(error)
+    });
+    // return response.status(400).send('something went wrong')
+});
+
+function getEventFromDoc(doc: DocumentSnapshot): Event {
+    return new Event(
+        doc.id,
+        doc.get('event_title'),
+        doc.get('event_leader'),
+        doc.get('assigned_by'),
+        doc.get('created_on'),
+        doc.get('event_date'),
+        doc.get('description'),
+        doc.get('investment_amount'),
+        doc.get('investment_return'),
+        doc.get('organizers'),
+        doc.get('selected_teams')
+    );
+}
 
 export const get_all_events = functions.https.onRequest(async (request, response) => {
     const eventRef = db.collection('Event')
     await eventRef.get().then(snapshot => {
         const result: Array<Event> = new Array<Event>();
         snapshot.forEach(doc => {
-            const event_id: string = doc.id
-            const assigned_by: string = doc.get('assigned_by')
-            const created_on: Date = doc.get('created_on')
-            const event_date: Date = doc.get('event_date')
-            const description: string = doc.get('description')
-            const event_leader: string = doc.get('event_leader')
-            const event_title: string = doc.get('event_title')
-            const investment_amount: string = doc.get('investment_amount')
-            const investment_return: string = doc.get('investment_return')
-            const organizers: string[] = doc.get('organizers')
-            const selected_teams: string[] = doc.get('selected_teams')
-            
-            result.push(new Event(
-                event_id,
-                event_title,
-                event_leader,
-                assigned_by,
-                created_on,
-                event_date,
-                description,
-                investment_amount,
-                investment_return,
-                organizers,
-                selected_teams
-            ));
-
-            // console.log(id)
-            // console.log(assign_by)
-            // console.log(created)
-            // console.log(date)
-            // console.log(description)
-            // console.log(event_leader)
-            // console.log(selected_team)
-            // console.log(organizers)
-            // console.log(title)
+            result.push(getEventFromDoc(doc))
         });
 
         console.log(JSON.stringify(result))
@@ -55,7 +54,7 @@ export const get_all_events = functions.https.onRequest(async (request, response
         console.log('error: ' + error)
         response.status(400).send(error)
     });
-    response.status(400).send('something went wrong!!')
+    // response.status(400).send('something went wrong!!')
 });
 
 export const add_event = functions.https.onRequest(async (request, response) => {
