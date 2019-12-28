@@ -4,10 +4,31 @@ import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore';
 
 import { Event } from './model/Event'
 import { Investment } from './model/Investment';
+import { APIResponse } from './model/APIResponse';
 
 admin.initializeApp(functions.config().firebase);
 const db = admin.firestore();
 const timestamp = admin.firestore.Timestamp
+
+export const delete_event = functions.https.onRequest(async (request, response) => {
+    const apiResponse: APIResponse = new APIResponse()    
+    console.log(request.rawBody)
+
+    await db.collection('Event').doc(request.body.event_id).delete()
+    .catch(error => {
+        apiResponse.setStatus('400')
+        apiResponse.setMessage(error)
+
+        console.log(JSON.stringify(apiResponse))
+        response.send(JSON.stringify(apiResponse))
+    })
+
+    apiResponse.setStatus('200')
+    apiResponse.setMessage('item deleted')
+
+    console.log(JSON.stringify(apiResponse))
+    response.send(JSON.stringify(apiResponse))
+});
 
 export const get_event_investment = functions.https.onRequest(async (request, response) => {
     await db.collection('Event').doc('oOUFMCSJ1mr2njMAUZER').get()
