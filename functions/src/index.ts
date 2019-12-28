@@ -2,25 +2,64 @@ import * as functions from 'firebase-functions';
 import admin = require('firebase-admin');
 import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore';
 
-import {Event} from './model/Event'
+import { Event } from './model/Event'
+import { Investment } from './model/Investment';
 
 admin.initializeApp(functions.config().firebase);
-let db = admin.firestore();
-let timestamp = admin.firestore.Timestamp
+const db = admin.firestore();
+const timestamp = admin.firestore.Timestamp
+
+export const get_event_investment = functions.https.onRequest(async (request, response) => {
+    await db.collection('Event').doc('oOUFMCSJ1mr2njMAUZER').get()
+        .then(doc => {
+            const investment_details: Investment[] = <Investment[]>JSON.parse(JSON.stringify(doc.get('investment_details')))
+            const result = ({
+                investment_details: investment_details,
+                investment_amount: doc.get('investment_amount'),
+                investment_return: doc.get('investment_return'),
+            })
+
+            console.log(JSON.stringify(result))
+            console.log(investment_details)
+            console.log(doc.get('investment_amount'))
+            console.log(doc.get('investment_return'))
+            return response.status(200).send(JSON.stringify(result))
+        }).catch(error => {
+            return response.status(400).send(error)
+        });
+});
+
+export const add_investment_details = functions.https.onRequest(async (request, response) => {
+    const body = request.body
+
+    const investment_details: Investment[] = <Investment[]>JSON.parse(body.investment_details)
+
+    console.log(investment_details)
+
+    await db.collection('Event').doc(body.event_id).update({
+        investment_details: investment_details,
+        investment_amount: body.investment_amount,
+        investment_return: body.investment_return,
+    }).catch(error => {
+        return response.status(400).send(error)
+    })
+
+    return response.status(200).send('200')
+});
 
 export const get_event_details = functions.https.onRequest(async (request, response) => {
     console.log(request.rawBody)
 
     await db.collection('Event').doc(request.body.event_id).get()
-    .then (doc => {
-        if (doc.exists) {
-            console.log(JSON.stringify(getEventFromDoc(doc)))
-            return response.status(200).send(JSON.stringify(getEventFromDoc(doc)))
-        } 
-        return response.status(404).send('Information not found')
-    }).catch (error => {
-        return response.status(400).send(error)
-    });
+        .then(doc => {
+            if (doc.exists) {
+                console.log(JSON.stringify(getEventFromDoc(doc)))
+                return response.status(200).send(JSON.stringify(getEventFromDoc(doc)))
+            }
+            return response.status(404).send('Information not found')
+        }).catch(error => {
+            return response.status(400).send(error)
+        });
     // return response.status(400).send('something went wrong')
 });
 
