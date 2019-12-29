@@ -5,23 +5,51 @@ import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore';
 import { Event } from './model/Event'
 import { Investment } from './model/Investment';
 import { APIResponse } from './model/APIResponse';
+import { Article } from './model/Article';
 
 admin.initializeApp(functions.config().firebase);
 const db = admin.firestore();
 const timestamp = admin.firestore.Timestamp
 
+export const get_all_articles = functions.https.onRequest(async (request, response) => {
+    await db.collection('Article').get()
+        .then(snapshot => {
+            const result: Array<Article> = new Array<Article>();
+            snapshot.forEach(doc => {
+                result.push(getArticleFromDoc(doc))
+            });
+            
+            response.send(JSON.stringify(result))
+        }).catch(error => {
+            response.send({
+                status: 400,
+                message: error
+            })
+        });
+});
+
+function getArticleFromDoc(doc: DocumentSnapshot): Article {
+    return new Article(
+        doc.id,
+        doc.get('username'),
+        doc.get('description'),
+        doc.get('time_stamp'),
+        doc.get('image_url'),
+    );
+}
+
 export const delete_event = functions.https.onRequest(async (request, response) => {
-    const apiResponse: APIResponse = new APIResponse()    
+    const apiResponse: APIResponse = new APIResponse()
     console.log(request.rawBody)
 
     await db.collection('Event').doc(request.body.event_id).delete()
-    .catch(error => {
-        apiResponse.setStatus('400')
-        apiResponse.setMessage(error)
+        .catch(error => {
+            apiResponse.setStatus('400')
+            apiResponse.setMessage(error)
 
-        console.log(JSON.stringify(apiResponse))
-        response.send(JSON.stringify(apiResponse))
-    })
+            console.log(JSON.stringify(apiResponse))
+            response.send(JSON.stringify(apiResponse))
+        })
 
     apiResponse.setStatus('200')
     apiResponse.setMessage('item deleted')

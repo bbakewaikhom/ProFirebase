@@ -1,7 +1,7 @@
 export class APIResponse {
     private status: string;
     private message: string;
-    private response: string;
+    private response: object;
 
     public getAPIResponse (): string {
         const apiResponse: APIResponse = new APIResponse()
@@ -20,7 +20,7 @@ export class APIResponse {
         this.message = message
     }
     
-    public setResponse (response: string) {
+    public setResponse (response: object) {
         this.response = response
     }
 
@@ -32,7 +32,7 @@ export class APIResponse {
         return this.message
     }
     
-    public getResponse (): string {
+    public getResponse (): object {
         return this.response
     }
 }
