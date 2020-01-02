@@ -12,4 +12,8 @@ export class Article {
         this.time_stamp = time_stamp
         this.image_url = image_url
     }
+
+    public getImageUrl (): string {
+        return this.image_url
+    }
 }

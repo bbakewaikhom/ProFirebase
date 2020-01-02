@@ -9,7 +9,45 @@ import { Article } from './model/Article';
 
 admin.initializeApp(functions.config().firebase);
 const db = admin.firestore();
+// const storage = admin.storage();
 const timestamp = admin.firestore.Timestamp
+
+// export const onDeleteArticle = functions.firestore
+//     .document('Article/{article_id}')
+//     .onDelete(async event => {
+//         const article = getArticleFromDoc(event)
+//         const image_ref = article.getImageStorageReference()
+//         await storage.bucket(image_ref).delete()
+//         .then  (res => {
+//             console.log("onResponse: " + res)
+//         }).catch (error => {
+//             console.log("Error: " + error)
+//         })
+//         console.log(event)
+//         return 200;
+//     });
+
+export const delete_article = functions.https.onRequest(async (request, response) => {
+    const apiResponse: APIResponse = new APIResponse()
+    console.log(request.rawBody)
+
+    await db.collection('Article').doc(request.body.article_id).delete()
+        .then(doc => {
+            apiResponse.setStatus('200')
+            apiResponse.setMessage('article deleted')
+
+            console.log(JSON.stringify(apiResponse))
+            console.log(JSON.stringify(doc))
+            response.send(JSON.stringify(apiResponse))
+        })
+        .catch(error => {
+            apiResponse.setStatus('400')
+            apiResponse.setMessage(error)
+
+            console.log(JSON.stringify(apiResponse))
+            response.send(JSON.stringify(apiResponse))
+        })
+});
 
 export const get_all_articles = functions.https.onRequest(async (request, response) => {
     await db.collection('Article').get()
@@ -18,7 +56,7 @@ export const get_all_articles = functions.https.onRequest(async (request, respon
             snapshot.forEach(doc => {
                 result.push(getArticleFromDoc(doc))
             });
-            
+
             response.send(JSON.stringify(result))
         }).catch(error => {
             response.send({
