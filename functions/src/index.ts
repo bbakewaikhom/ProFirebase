@@ -28,6 +28,22 @@ const timestamp = admin.firestore.Timestamp
 //         return 200;
 //     });
 
+export const update_user_details = functions.https.onRequest(async (request, response) => {
+    const user_id: string = request.body.user_id
+
+    await db.collection('User').doc(user_id).update({
+        bio: request.body.bio,
+        display_name: request.body.display_name,
+        phone_number: request.body.phone_number
+    }).then(event => {
+        console.log(event)
+        return response.status(200).send('200')
+    }).catch(error => {
+        console.log(error)
+        return response.status(400).send('400')
+    })
+})
+
 export const get_user_details = functions.https.onRequest(async (request, response) => {
     const user_id: string = request.body.user_id
     console.log("User id: " + user_id)
@@ -153,7 +169,7 @@ export const delete_event = functions.https.onRequest(async (request, response) 
 
 // TODO: change the doc id
 export const get_event_investment = functions.https.onRequest(async (request, response) => {
-    await db.collection('Event').doc('oOUFMCSJ1mr2njMAUZER').get()
+    await db.collection('Event').doc(request.body.event_id).get()
         .then(doc => {
             const investment_details: Investment[] = <Investment[]>JSON.parse(JSON.stringify(doc.get('investment_details')))
             const result = ({
