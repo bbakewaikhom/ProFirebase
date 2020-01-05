@@ -6,6 +6,7 @@ import { Event } from './model/Event'
 import { Investment } from './model/Investment';
 import { APIResponse } from './model/APIResponse';
 import { Article } from './model/Article';
+import { User } from './model/User';
 
 admin.initializeApp(functions.config().firebase);
 const db = admin.firestore();
@@ -27,6 +28,60 @@ const timestamp = admin.firestore.Timestamp
 //         return 200;
 //     });
 
+export const get_user_details = functions.https.onRequest(async (request, response) => {
+    const user_id: string = request.body.user_id
+    console.log("User id: " + user_id)
+
+    await db.collection('User').doc(user_id).get()
+        .then(doc => {
+            if (doc.exists) {
+                const user: User = getUserFromDoc(doc)
+                console.log(JSON.stringify(user))
+                return response.status(200).send(JSON.stringify(user))
+            }
+            return response.status(404).send('Information not found')
+        }).catch(error => {
+            console.log(error)
+            return response.status(400).send(error)
+        });
+});
+
+function getUserFromDoc(doc: DocumentSnapshot): User {
+    return new User(
+        doc.get('display_name'),
+        doc.get('username'),
+        doc.get('email'),
+        doc.get('phone_number'),
+        doc.get('profile_image_url'),
+        doc.get('user_id'),
+        doc.get('user_type'),
+        doc.get('bio'),
+    );
+}
+
+export const on_create_user = functions.auth.user().onCreate(async (user) => {
+    console.log('User login for the first time')
+    const username: string = <string>user.displayName?.replace(/\s/g, '')
+    await db.collection('User').doc(user.uid).set({
+        display_name: user.displayName,
+        username: username,
+        email: user.email,
+        email_verified: user.emailVerified,
+        phone_number: user.phoneNumber,
+        profile_image_url: user.photoURL,
+        user_id: user.uid,
+        user_type: 'guest',
+        bio: '',
+    }).then(ref => {
+        console.log("user added: " + JSON.stringify(ref))
+        return
+    }).catch(error => {
+        console.log(error)
+        return
+    })
+});
+
+// This deletes only article from "Article" without deleting the image from storage
 export const delete_article = functions.https.onRequest(async (request, response) => {
     const apiResponse: APIResponse = new APIResponse()
     console.log(request.rawBody)
@@ -96,6 +151,7 @@ export const delete_event = functions.https.onRequest(async (request, response) 
     response.send(JSON.stringify(apiResponse))
 });
 
+// TODO: change the doc id
 export const get_event_investment = functions.https.onRequest(async (request, response) => {
     await db.collection('Event').doc('oOUFMCSJ1mr2njMAUZER').get()
         .then(doc => {
