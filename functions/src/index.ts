@@ -121,29 +121,42 @@ export const delete_article = functions.https.onRequest(async (request, response
 });
 
 export const get_all_articles = functions.https.onRequest(async (request, response) => {
-    await db.collection('Article').get()
-        .then(snapshot => {
-            const result: Array<Article> = new Array<Article>();
-            snapshot.forEach(doc => {
-                result.push(getArticleFromDoc(doc))
-            });
-
-            response.send(JSON.stringify(result))
-        }).catch(error => {
-            response.send({
-                status: 400,
-                message: error
+    await db.collection('Article').get().then(snapshot => {
+        const promises: any = []
+        snapshot.forEach(async article_doc => {
+            const article: Article = getArticleFromDoc(article_doc);
+            const p = db.collection('User').doc(article.user_id).get().then(user_doc => {
+                const user: User = getUserFromDoc(user_doc)
+                article.setDisplayName(user.display_name)
+                article.setAvatar(user.profile_image_url)
+                return article
             })
-        });
+            promises.push(p)
+        })
+        return Promise.all(promises)
+    }).then(articles => {
+        console.log(articles)
+        response.send(JSON.stringify(articles))
+    })
 });
 
 function getArticleFromDoc(doc: DocumentSnapshot): Article {
+    interface TimeStamp {
+        _seconds: number;
+        _nanoseconds: number;
+    }
+    const date: Date = doc.get('time_stamp')
+    const str: string = JSON.stringify(date)
+    const obj: TimeStamp = JSON.parse(str)
+
     return new Article(
         doc.id,
-        doc.get('username'),
+        doc.get('user_id'),
         doc.get('description'),
-        doc.get('time_stamp'),
+        obj._seconds.toString(),
         doc.get('image_url'),
+        '',
+        ''
     );
 }
 
@@ -167,7 +180,6 @@ export const delete_event = functions.https.onRequest(async (request, response) 
     response.send(JSON.stringify(apiResponse))
 });
 
-// TODO: change the doc id
 export const get_event_investment = functions.https.onRequest(async (request, response) => {
     await db.collection('Event').doc(request.body.event_id).get()
         .then(doc => {
