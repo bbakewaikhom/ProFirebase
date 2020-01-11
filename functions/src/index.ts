@@ -13,20 +13,20 @@ const db = admin.firestore();
 // const storage = admin.storage();
 const timestamp = admin.firestore.Timestamp
 
-// export const onDeleteArticle = functions.firestore
-//     .document('Article/{article_id}')
-//     .onDelete(async event => {
-//         const article = getArticleFromDoc(event)
-//         const image_ref = article.getImageStorageReference()
-//         await storage.bucket(image_ref).delete()
-//         .then  (res => {
-//             console.log("onResponse: " + res)
-//         }).catch (error => {
-//             console.log("Error: " + error)
-//         })
-//         console.log(event)
-//         return 200;
-//     });
+export const get_users = functions.https.onRequest(async (request, response) => {
+    await db.collection('User').get().then(snapshot => {
+        const result: Array<User> = new Array<User>();
+        snapshot.forEach(doc => {
+            result.push(getUserFromDoc(doc))
+        });
+
+        console.log(JSON.stringify(result))
+        response.status(200).send(JSON.stringify(result))
+    }).catch(error => {
+        console.log('error: ' + error)
+        response.status(400).send(error)
+    });
+});
 
 export const update_user_details = functions.https.onRequest(async (request, response) => {
     const user_id: string = request.body.user_id
