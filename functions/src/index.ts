@@ -231,40 +231,51 @@ export const get_event_details = functions.https.onRequest(async (request, respo
         }).catch(error => {
             return response.status(400).send(error)
         });
-    // return response.status(400).send('something went wrong')
 });
 
-function getEventFromDoc(doc: DocumentSnapshot): Event {
-    return new Event(
-        doc.id,
-        doc.get('event_title'),
-        doc.get('event_leader'),
-        doc.get('assigned_by'),
-        doc.get('created_on'),
-        doc.get('event_date'),
-        doc.get('description'),
-        doc.get('investment_amount'),
-        doc.get('investment_return'),
-        doc.get('organizers'),
-        doc.get('selected_teams')
-    );
+async function getEventFromDoc(event_doc: DocumentSnapshot): Promise<Event> {
+    const organizers_ids: string[] = event_doc.get('organizers')
+
+    let event_leader: User = {} as User
+    let assigned_by: User = {} as User
+    let organizers: User[] = []
+    const docRef: any[] = []
+
+    await db.collection('User').doc(event_doc.get('event_leader')).get().then(doc => event_leader = getUserFromDoc(doc))
+    await db.collection('User').doc(event_doc.get('assigned_by')).get().then(doc => assigned_by = getUserFromDoc(doc))
+
+    organizers_ids.forEach(org => docRef.push(db.doc('User/' + org)))
+    await db.getAll(...docRef).then(docs => docs.forEach(doc => organizers.push(getUserFromDoc(doc))))
+
+    const event = new Event(
+        event_doc.id,
+        event_doc.get('event_title'),
+        event_leader,
+        assigned_by,
+        event_doc.get('created_on'),
+        event_doc.get('event_date'),
+        event_doc.get('description'),
+        event_doc.get('investment_amount'),
+        event_doc.get('investment_return'),
+        organizers,
+        event_doc.get('selected_teams')
+    )
+    return event
 }
 
 export const get_all_events = functions.https.onRequest(async (request, response) => {
     const eventRef = db.collection('Event')
     await eventRef.get().then(snapshot => {
-        const result: Array<Event> = new Array<Event>();
-        snapshot.forEach(doc => {
-            result.push(getEventFromDoc(doc))
-        });
-
-        console.log(JSON.stringify(result))
-        response.status(200).send(JSON.stringify(result))
+        const promises: any = []
+        snapshot.forEach(async doc => promises.push(getEventFromDoc(doc)))
+        return Promise.all(promises)
+    }).then(events => {
+        console.log(JSON.stringify(events))
+        response.status(200).send(JSON.stringify(events))
     }).catch(error => {
         console.log('error: ' + error)
         response.status(400).send(error)
     });
-    // response.status(400).send('something went wrong!!')
 });
 
 export const add_event = functions.https.onRequest(async (request, response) => {
@@ -291,5 +302,5 @@ export const add_event = functions.https.onRequest(async (request, response) => 
 });
 
 function getArrayString(str: string) {
-    return str.substring(1, (str.length - 1)).split(",")
+    return str.substring(1, (str.length - 1)).split(",").map(s => s.trim())
 }

@@ -1,19 +1,20 @@
+import { User } from './User';
 export class Event {
     event_id: string;
     event_title: string;
-    event_leader: string;
-    assigned_by: string;
+    event_leader: User;
+    assigned_by: User;
     created_on: Date;
     event_date: Date;
     description: string;
     investment_amount: string;
     investment_return: string;
     selected_teams: string[];
-    organizers: string[];
+    organizers: User[];
 
-    constructor (id: string, title: string, event_leader: string, assign_by: string, 
+    constructor (id: string, title: string, event_leader: User, assign_by: User, 
         created: Date, date: Date, description: string, investment_amount: string,
-        investment_return: string, organizers: string[], selected_team: string[]) {
+        investment_return: string, organizers: User[], selected_team: string[]) {
         this.event_id = id
         this.event_title = title
         this.event_leader = event_leader
