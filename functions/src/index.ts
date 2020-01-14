@@ -141,10 +141,6 @@ export const get_all_articles = functions.https.onRequest(async (request, respon
 });
 
 function getArticleFromDoc(doc: DocumentSnapshot): Article {
-    interface TimeStamp {
-        _seconds: number;
-        _nanoseconds: number;
-    }
     const date: Date = doc.get('time_stamp')
     const str: string = JSON.stringify(date)
     const obj: TimeStamp = JSON.parse(str)
@@ -219,16 +215,19 @@ export const add_investment_details = functions.https.onRequest(async (request, 
 });
 
 export const get_event_details = functions.https.onRequest(async (request, response) => {
-    console.log(request.rawBody)
+    console.log(request.body.event_id)
 
     await db.collection('Event').doc(request.body.event_id).get()
-        .then(doc => {
+        .then(async doc => {
             if (doc.exists) {
-                console.log(JSON.stringify(getEventFromDoc(doc)))
-                return response.status(200).send(JSON.stringify(getEventFromDoc(doc)))
+                let event = {} as Event
+                await getEventFromDoc(doc).then(e => event = e)
+                console.log(JSON.stringify(event))
+                return response.status(200).send(JSON.stringify(event))
             }
             return response.status(404).send('Information not found')
         }).catch(error => {
+            console.log(error)
             return response.status(400).send(error)
         });
 });
@@ -241,19 +240,25 @@ async function getEventFromDoc(event_doc: DocumentSnapshot): Promise<Event> {
     let organizers: User[] = []
     const docRef: any[] = []
 
-    await db.collection('User').doc(event_doc.get('event_leader')).get().then(doc => event_leader = getUserFromDoc(doc))
-    await db.collection('User').doc(event_doc.get('assigned_by')).get().then(doc => assigned_by = getUserFromDoc(doc))
-
+    docRef.push(db.doc('User/' + event_doc.get('event_leader')))
+    docRef.push(db.doc('User/' + event_doc.get('assigned_by')))
     organizers_ids.forEach(org => docRef.push(db.doc('User/' + org)))
-    await db.getAll(...docRef).then(docs => docs.forEach(doc => organizers.push(getUserFromDoc(doc))))
+
+    await db.getAll(...docRef).then(docs => { 
+        event_leader = getUserFromDoc(docs[0])
+        assigned_by = getUserFromDoc(docs[1])
+        for (let i=2; i<docs.length; i++) {
+            organizers.push(getUserFromDoc(docs[i]))
+        }
+    })
 
     const event = new Event(
         event_doc.id,
         event_doc.get('event_title'),
         event_leader,
         assigned_by,
-        event_doc.get('created_on'),
-        event_doc.get('event_date'),
+        getSecondFromDate(event_doc.get('created_on')),
+        getSecondFromDate(event_doc.get('event_date')),
         event_doc.get('description'),
         event_doc.get('investment_amount'),
         event_doc.get('investment_return'),
@@ -261,6 +266,12 @@ async function getEventFromDoc(event_doc: DocumentSnapshot): Promise<Event> {
         event_doc.get('selected_teams')
     )
     return event
+}
+
+function getSecondFromDate(date: Date): string {
+    const str: string = JSON.stringify(date)
+    const ts: TimeStamp = JSON.parse(str)
+    return ts._seconds.toString()
 }
 
 export const get_all_events = functions.https.onRequest(async (request, response) => {

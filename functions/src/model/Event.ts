@@ -4,8 +4,8 @@ export class Event {
     event_title: string;
     event_leader: User;
     assigned_by: User;
-    created_on: Date;
-    event_date: Date;
+    created_on: string;
+    event_date: string;
     description: string;
     investment_amount: string;
     investment_return: string;
@@ -13,7 +13,7 @@ export class Event {
     organizers: User[];
 
     constructor (id: string, title: string, event_leader: User, assign_by: User, 
-        created: Date, date: Date, description: string, investment_amount: string,
+        created: string, date: string, description: string, investment_amount: string,
         investment_return: string, organizers: User[], selected_team: string[]) {
         this.event_id = id
         this.event_title = title
