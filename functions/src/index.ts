@@ -13,6 +13,30 @@ const db = admin.firestore();
 // const storage = admin.storage();
 const timestamp = admin.firestore.Timestamp
 
+export const remove_organizer_from_event = functions.https.onRequest(async (request, response) => {
+    console.log(request.body.event_id)
+    console.log(request.body.user_id)
+    await db.collection('Event').doc(request.body.event_id).update({
+        organizers: admin.firestore.FieldValue.arrayRemove(request.body.user_id)
+    }).catch (error => {
+        console.log(error)
+        response.send('400')
+    })
+    response.send('200')
+})
+
+export const add_organizer_to_event = functions.https.onRequest(async (request, response) => {
+    console.log(request.body.event_id)
+    console.log(request.body.organizers_to_add)
+    await db.collection('Event').doc(request.body.event_id).update({
+        organizers: admin.firestore.FieldValue.arrayUnion(...getArrayString(request.body.organizers_to_add))
+    }).catch (error => {
+        console.log(error)
+        response.send('400')
+    })
+    response.send('200')
+})
+
 export const get_users = functions.https.onRequest(async (request, response) => {
     await db.collection('User').get().then(snapshot => {
         const result: Array<User> = new Array<User>();
