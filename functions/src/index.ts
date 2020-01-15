@@ -13,12 +13,30 @@ const db = admin.firestore();
 // const storage = admin.storage();
 const timestamp = admin.firestore.Timestamp
 
+export const get_my_event = functions.https.onRequest(async (request, response) => {
+    const user_id: string = request.body.user_id
+    console.log(user_id)
+    await db.collection('Event').where('organizers', 'array-contains', user_id).get().then(snapshot => {
+        const my_event: Promise<Event>[] = []
+        snapshot.forEach(async doc => {
+            my_event.push(getEventFromDoc(doc))
+        })
+        return Promise.all(my_event)
+    }).then (events => {
+        console.log(JSON.stringify(events))
+        response.send(JSON.stringify(events))
+    }).catch (error => {
+        console.log(error)
+        response.status(400).send('400')
+    })
+})
+
 export const remove_organizer_from_event = functions.https.onRequest(async (request, response) => {
     console.log(request.body.event_id)
     console.log(request.body.user_id)
     await db.collection('Event').doc(request.body.event_id).update({
         organizers: admin.firestore.FieldValue.arrayRemove(request.body.user_id)
-    }).catch (error => {
+    }).catch(error => {
         console.log(error)
         response.send('400')
     })
@@ -30,7 +48,7 @@ export const add_organizer_to_event = functions.https.onRequest(async (request, 
     console.log(request.body.organizers_to_add)
     await db.collection('Event').doc(request.body.event_id).update({
         organizers: admin.firestore.FieldValue.arrayUnion(...getArrayString(request.body.organizers_to_add))
-    }).catch (error => {
+    }).catch(error => {
         console.log(error)
         response.send('400')
     })
@@ -268,10 +286,10 @@ async function getEventFromDoc(event_doc: DocumentSnapshot): Promise<Event> {
     docRef.push(db.doc('User/' + event_doc.get('assigned_by')))
     organizers_ids.forEach(org => docRef.push(db.doc('User/' + org)))
 
-    await db.getAll(...docRef).then(docs => { 
+    await db.getAll(...docRef).then(docs => {
         event_leader = getUserFromDoc(docs[0])
         assigned_by = getUserFromDoc(docs[1])
-        for (let i=2; i<docs.length; i++) {
+        for (let i = 2; i < docs.length; i++) {
             organizers.push(getUserFromDoc(docs[i]))
         }
     })
