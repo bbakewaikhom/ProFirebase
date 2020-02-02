@@ -22,10 +22,10 @@ export const get_my_event = functions.https.onRequest(async (request, response) 
             my_event.push(getEventFromDoc(doc))
         })
         return Promise.all(my_event)
-    }).then (events => {
+    }).then(events => {
         console.log(JSON.stringify(events))
         response.send(JSON.stringify(events))
-    }).catch (error => {
+    }).catch(error => {
         console.log(error)
         response.status(400).send('400')
     })
@@ -117,9 +117,64 @@ function getUserFromDoc(doc: DocumentSnapshot): User {
     );
 }
 
+// TODO: Delete this method after BufferArticle is empty
+export const recover_old_data = functions.auth.user().onCreate(async (user) => {
+    console.log('recover old data')
+    const email: string = <string>user.email
+
+    await db.collection('BufferArticle').where('email', '==', email).get().then(snapshot => {
+        const promises: any = []
+        snapshot.forEach(doc => {
+            const article = db.collection('Article').doc(doc.id).set({
+                user_id: user.uid,
+                time_stamp: doc.get('time_stamp'),
+                description: doc.get('description'),
+                image_url: doc.get('image_url')
+            })
+            promises.push(article)
+        })
+        console.log('length: ' + snapshot.size)
+        return Promise.all(promises)
+    }).then(ref => {
+        console.log('saved: ' + ref)
+    }).catch(error => {
+        console.error(error)
+    })
+
+    await db.collection('BufferArticle').where('email', '==', email).get().then(snapshot => {
+        const promises: any = []
+        snapshot.forEach(doc => {
+            const deleted = doc.ref.delete()
+            promises.push(deleted)
+        })
+        return Promise.all(promises)
+    }).then(ref => {
+        console.log('deleted: ' + ref)
+    }).catch(error => {
+        console.error(error)
+    })
+});
+
 export const on_create_user = functions.auth.user().onCreate(async (user) => {
     console.log('User login for the first time')
     const username: string = <string>user.displayName?.replace(/\s/g, '')
+    const email: string = <string>user.email
+    let account_type: string = 'guest'
+
+    // TODO: remove this part after BufferUser is empty
+    await db.collection('BufferUser').doc(email).get().then(doc => {
+        if (doc.exists) {
+            account_type = doc.get('account_type')
+            return
+        }
+    })
+
+    await db.collection('BufferUser').doc(email).delete().then(doc => {
+        console.log('deleted: ' + doc)
+        return
+    })
+    // till this
+
     await db.collection('User').doc(user.uid).set({
         display_name: user.displayName,
         username: username,
@@ -128,7 +183,7 @@ export const on_create_user = functions.auth.user().onCreate(async (user) => {
         phone_number: user.phoneNumber,
         profile_image_url: user.photoURL,
         user_id: user.uid,
-        user_type: 'guest',
+        user_type: account_type,
         bio: '',
     }).then(ref => {
         console.log("user added: " + JSON.stringify(ref))
@@ -178,7 +233,7 @@ export const get_all_articles = functions.https.onRequest(async (request, respon
         return Promise.all(promises)
     }).then(articles => {
         console.log(articles)
-        response.send(JSON.stringify(articles))
+        response.send(JSON.stringify(articles.reverse()))
     })
 });
 
