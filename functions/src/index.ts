@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import admin = require('firebase-admin');
+const firebase_tools = require('firebase-tools');
 import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore';
 
 import { Event } from './model/Event'
@@ -13,10 +14,134 @@ const db = admin.firestore();
 // const storage = admin.storage();
 const timestamp = admin.firestore.Timestamp
 
+const REF_USER: string = 'User'
+const REF_ARTICLE: string = 'Article'
+const REF_EVENT: string = 'Event'
+const REF_SUB_REACTION: string = 'Reaction'
+
+const ACTION_NONE: string = 'none'
+
+export const get_reacted_users_on_article = functions.https.onRequest(async (request, response) => {
+    const article_id: string = request.body.article_id
+
+    const reactions: any = []
+    await db.collection(REF_ARTICLE).doc(article_id).collection(REF_SUB_REACTION).get().then(snapshot => {
+        const promises: any = []
+        snapshot.forEach(doc => {
+            promises.push(db.collection(REF_USER).doc(doc.id).get().then(userDoc => {
+                reactions.push({
+                    user: getUserFromDoc(userDoc),
+                    reaction: doc.get('reaction')
+                }) 
+            }))
+        })
+        return Promise.all(promises)
+    }).then(_ => {
+        console.log(reactions)
+        response.send(reactions)
+    }).catch(error => {
+        console.error(error)
+        response.send('400')
+    })
+})
+exports.on_delete_article = functions.firestore
+    .document(REF_ARTICLE + '/{article_id}')
+    .onDelete((snap, context) => {
+        const deletedValue = snap.data();
+        console.log('Execution onDelete article')
+        console.log(deletedValue)
+    });
+
+export const get_article_details = functions.https.onRequest(async (request, response) => {
+    const article_id: string = request.body.article_id
+    const user_id: string = request.body.user_id
+
+    await db.collection(REF_ARTICLE).doc(article_id).get().then(async doc => {
+        if (doc.exists) {
+            const article: Article = getArticleFromDoc(doc)
+            await db.collection(REF_USER).doc(article.user_id).get().then(user_doc => {
+                const user: User = getUserFromDoc(user_doc)
+                article.setDisplayName(user.display_name)
+                article.setAvatar(user.profile_image_url)
+            })
+
+            await db.collection(REF_ARTICLE).doc(article_id).collection(REF_SUB_REACTION).doc(user_id).get().then(reaction => {
+                if (reaction.exists) {
+                    article.setMyReaction(reaction.get('reaction'))
+                } else {
+                    article.setMyReaction(ACTION_NONE)
+                }
+            })
+            response.send(JSON.stringify(article))
+        } else {
+            response.send('400')
+        }
+    }).catch(error => {
+        console.error(error)
+        response.send('400')
+    })
+})
+
+export const on_article_reaction = functions.https.onRequest(async (request, response) => {
+    const user_id: string = request.body.user_id
+    const article_id: string = request.body.article_id
+    const action: string = request.body.action
+
+    const increment = admin.firestore.FieldValue.increment(1)
+    const decrement = admin.firestore.FieldValue.increment(-1)
+    const db_ref = db.collection(REF_ARTICLE).doc(article_id).collection(REF_SUB_REACTION).doc(user_id)
+
+    await db_ref.get().then(async doc => {
+        const promises: any = []
+        if (doc.exists) {
+            const existing_action: string = doc.get('reaction')
+            if (existing_action == action) {
+                await db.collection(REF_ARTICLE).doc(article_id).update({
+                    reaction_count: decrement
+                })
+                promises.push(db_ref.delete())
+            } else {
+                promises.push(db_ref.update({
+                    reaction: action
+                }))
+            }
+        } else {
+            await db.collection(REF_ARTICLE).doc(article_id).update({
+                reaction_count: increment
+            })
+            promises.push(db_ref.set({
+                reaction: action
+            }))
+        }
+        return Promise.all(promises)
+    }).then(_ => {
+        response.send('200')
+    })
+        .catch(error => {
+            console.error(error)
+            response.send('400')
+        })
+})
+
+export const update_account_type = functions.https.onRequest(async (request, response) => {
+    const user_id: string = request.body.user_id
+    const user_type: string = request.body.user_type
+
+    await db.collection(REF_USER).doc(user_id).update({
+        user_type: user_type
+    }).then(ref => {
+        console.log(ref)
+        response.send('200')
+    }).catch(error => {
+        console.error(error)
+        response.send('400')
+    })
+})
+
 export const get_my_event = functions.https.onRequest(async (request, response) => {
     const user_id: string = request.body.user_id
     console.log(user_id)
-    await db.collection('Event').where('organizers', 'array-contains', user_id).get().then(snapshot => {
+    await db.collection(REF_EVENT).where('organizers', 'array-contains', user_id).get().then(snapshot => {
         const my_event: Promise<Event>[] = []
         snapshot.forEach(async doc => {
             my_event.push(getEventFromDoc(doc))
@@ -34,7 +159,7 @@ export const get_my_event = functions.https.onRequest(async (request, response) 
 export const remove_organizer_from_event = functions.https.onRequest(async (request, response) => {
     console.log(request.body.event_id)
     console.log(request.body.user_id)
-    await db.collection('Event').doc(request.body.event_id).update({
+    await db.collection(REF_EVENT).doc(request.body.event_id).update({
         organizers: admin.firestore.FieldValue.arrayRemove(request.body.user_id)
     }).catch(error => {
         console.log(error)
@@ -46,7 +171,7 @@ export const remove_organizer_from_event = functions.https.onRequest(async (requ
 export const add_organizer_to_event = functions.https.onRequest(async (request, response) => {
     console.log(request.body.event_id)
     console.log(request.body.organizers_to_add)
-    await db.collection('Event').doc(request.body.event_id).update({
+    await db.collection(REF_EVENT).doc(request.body.event_id).update({
         organizers: admin.firestore.FieldValue.arrayUnion(...getArrayString(request.body.organizers_to_add))
     }).catch(error => {
         console.log(error)
@@ -56,7 +181,7 @@ export const add_organizer_to_event = functions.https.onRequest(async (request, 
 })
 
 export const get_users = functions.https.onRequest(async (request, response) => {
-    await db.collection('User').get().then(snapshot => {
+    await db.collection(REF_USER).orderBy('display_name').get().then(snapshot => {
         const result: Array<User> = new Array<User>();
         snapshot.forEach(doc => {
             result.push(getUserFromDoc(doc))
@@ -73,7 +198,7 @@ export const get_users = functions.https.onRequest(async (request, response) => 
 export const update_user_details = functions.https.onRequest(async (request, response) => {
     const user_id: string = request.body.user_id
 
-    await db.collection('User').doc(user_id).update({
+    await db.collection(REF_USER).doc(user_id).update({
         bio: request.body.bio,
         display_name: request.body.display_name,
         phone_number: request.body.phone_number
@@ -90,7 +215,7 @@ export const get_user_details = functions.https.onRequest(async (request, respon
     const user_id: string = request.body.user_id
     console.log("User id: " + user_id)
 
-    await db.collection('User').doc(user_id).get()
+    await db.collection(REF_USER).doc(user_id).get()
         .then(doc => {
             if (doc.exists) {
                 const user: User = getUserFromDoc(doc)
@@ -125,7 +250,7 @@ export const recover_old_data = functions.auth.user().onCreate(async (user) => {
     await db.collection('BufferArticle').where('email', '==', email).get().then(snapshot => {
         const promises: any = []
         snapshot.forEach(doc => {
-            const article = db.collection('Article').doc(doc.id).set({
+            const article = db.collection(REF_ARTICLE).doc(doc.id).set({
                 user_id: user.uid,
                 time_stamp: doc.get('time_stamp'),
                 description: doc.get('description'),
@@ -175,7 +300,7 @@ export const on_create_user = functions.auth.user().onCreate(async (user) => {
     })
     // till this
 
-    await db.collection('User').doc(user.uid).set({
+    await db.collection(REF_USER).doc(user.uid).set({
         display_name: user.displayName,
         username: username,
         email: user.email,
@@ -196,36 +321,42 @@ export const on_create_user = functions.auth.user().onCreate(async (user) => {
 
 // This deletes only article from "Article" without deleting the image from storage
 export const delete_article = functions.https.onRequest(async (request, response) => {
-    const apiResponse: APIResponse = new APIResponse()
-    console.log(request.rawBody)
+    const path: string = REF_ARTICLE + '/' + request.body.article_id
 
-    await db.collection('Article').doc(request.body.article_id).delete()
-        .then(doc => {
-            apiResponse.setStatus('200')
-            apiResponse.setMessage('article deleted')
-
-            console.log(JSON.stringify(apiResponse))
-            console.log(JSON.stringify(doc))
-            response.send(JSON.stringify(apiResponse))
-        })
-        .catch(error => {
-            apiResponse.setStatus('400')
-            apiResponse.setMessage(error)
-
-            console.log(JSON.stringify(apiResponse))
-            response.send(JSON.stringify(apiResponse))
-        })
+    await firebase_tools.firestore.delete(path, {
+        project: process.env.GCLOUD_PROJECT,
+        recursive: true,
+        yes: true,
+    }).then((ref: any) => {
+        console.log(ref)
+        response.send('200')
+    }).catch((error: any) => {
+        console.error(error)
+        response.send('400')
+    })
 });
 
 export const get_all_articles = functions.https.onRequest(async (request, response) => {
-    await db.collection('Article').get().then(snapshot => {
+    const user_id: string = request.body.user_id
+
+    await db.collection(REF_ARTICLE).get().then(snapshot => {
         const promises: any = []
         snapshot.forEach(async article_doc => {
             const article: Article = getArticleFromDoc(article_doc);
-            const p = db.collection('User').doc(article.user_id).get().then(user_doc => {
+
+            const p = db.collection(REF_USER).doc(article.user_id).get().then(async user_doc => {
                 const user: User = getUserFromDoc(user_doc)
                 article.setDisplayName(user.display_name)
                 article.setAvatar(user.profile_image_url)
+
+                await db.collection(REF_ARTICLE).doc(article_doc.id).collection(REF_SUB_REACTION).doc(user_id).get().then(reaction => {
+                    if (reaction.exists) {
+                        article.setMyReaction(reaction.get('reaction'))
+                    } else {
+                        article.setMyReaction(ACTION_NONE)
+                    }
+                })
+
                 return article
             })
             promises.push(p)
@@ -249,7 +380,8 @@ function getArticleFromDoc(doc: DocumentSnapshot): Article {
         obj._seconds.toString(),
         doc.get('image_url'),
         '',
-        ''
+        '',
+        doc.get('reaction_count').toString()
     );
 }
 
@@ -257,7 +389,7 @@ export const delete_event = functions.https.onRequest(async (request, response) 
     const apiResponse: APIResponse = new APIResponse()
     console.log(request.rawBody)
 
-    await db.collection('Event').doc(request.body.event_id).delete()
+    await db.collection(REF_EVENT).doc(request.body.event_id).delete()
         .catch(error => {
             apiResponse.setStatus('400')
             apiResponse.setMessage(error)
@@ -274,7 +406,7 @@ export const delete_event = functions.https.onRequest(async (request, response) 
 });
 
 export const get_event_investment = functions.https.onRequest(async (request, response) => {
-    await db.collection('Event').doc(request.body.event_id).get()
+    await db.collection(REF_EVENT).doc(request.body.event_id).get()
         .then(doc => {
             const investment_details: Investment[] = <Investment[]>JSON.parse(JSON.stringify(doc.get('investment_details')))
             const result = ({
@@ -300,7 +432,7 @@ export const add_investment_details = functions.https.onRequest(async (request, 
 
     console.log(investment_details)
 
-    await db.collection('Event').doc(body.event_id).update({
+    await db.collection(REF_EVENT).doc(body.event_id).update({
         investment_details: investment_details,
         investment_amount: body.investment_amount,
         investment_return: body.investment_return,
@@ -314,7 +446,7 @@ export const add_investment_details = functions.https.onRequest(async (request, 
 export const get_event_details = functions.https.onRequest(async (request, response) => {
     console.log(request.body.event_id)
 
-    await db.collection('Event').doc(request.body.event_id).get()
+    await db.collection(REF_EVENT).doc(request.body.event_id).get()
         .then(async doc => {
             if (doc.exists) {
                 let event = {} as Event
@@ -372,7 +504,7 @@ function getSecondFromDate(date: Date): string {
 }
 
 export const get_all_events = functions.https.onRequest(async (request, response) => {
-    const eventRef = db.collection('Event')
+    const eventRef = db.collection(REF_EVENT)
     await eventRef.get().then(snapshot => {
         const promises: any = []
         snapshot.forEach(async doc => promises.push(getEventFromDoc(doc)))
@@ -391,7 +523,7 @@ export const add_event = functions.https.onRequest(async (request, response) => 
 
     const data = request.body
 
-    await db.collection('Event').add({
+    await db.collection(REF_EVENT).add({
         event_title: data.event_title,
         event_leader: data.event_leader,
         assigned_by: data.assigned_by,
